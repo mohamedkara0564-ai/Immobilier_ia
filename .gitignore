@@ -1,4 +1,19 @@
+# Python
 venv/
-.env
+.venv/
 __pycache__/
 *.pyc
+.ipynb_checkpoints/
+
+# Secrets (jamais versionnés)
+.env
+
+# Node / Vite
+node_modules/
+dist/
+
+# Éditeur et système
+.vscode/
+Thumbs.db
+.DS_Store
+*.log

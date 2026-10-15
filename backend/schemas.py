@@ -39,6 +39,7 @@ class LogementCreate(BaseModel):
     nb_salons: int | None = None
     nb_salles_de_bains: int | None = None
     ville: str
+    quartier: str | None = None
     adresse: str | None = None
 
 class LogementOut(BaseModel):
@@ -53,6 +54,7 @@ class LogementOut(BaseModel):
     nb_salons: int | None
     nb_salles_de_bains: int | None
     ville: str
+    quartier: str | None
     adresse: str | None
     statut: str
 
@@ -69,6 +71,7 @@ class LogementUpdate(BaseModel):
     nb_salons: int | None = None
     nb_salles_de_bains: int | None = None
     ville: str | None = None
+    quartier : str | None = None
     adresse: str | None = None
     statut: str | None = None
 
@@ -88,3 +91,14 @@ class LocationOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+class PredictionInput(BaseModel):
+    quartier: str
+    type: str
+    surface: float
+    nb_chambres: int
+    nb_salons: int
+    nb_salles_de_bains: int
+
+class PredictionOut(BaseModel):
+    prix_estime: float

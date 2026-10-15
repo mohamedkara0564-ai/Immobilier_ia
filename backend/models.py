@@ -27,6 +27,7 @@ class Logement(Base):
     nb_salons = Column(Integer)
     nb_salles_de_bains = Column(Integer)
     ville = Column(String, nullable=False)
+    quartier = Column(String)
     adresse = Column(String)
     statut = Column(String, default="disponible")
 
