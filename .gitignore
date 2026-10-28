@@ -17,3 +17,7 @@ dist/
 Thumbs.db
 .DS_Store
 *.log
+
+# Fichiers envoyés par les utilisateurs (photos des logements)
+uploads/
+backend/uploads/
