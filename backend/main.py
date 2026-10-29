@@ -1,4 +1,7 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
+import uuid
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from database import Base, engine, get_db
@@ -23,9 +26,28 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+DOSSIER_UPLOADS = Path(__file__).resolve().parent / "uploads"
+DOSSIER_UPLOADS.mkdir(exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=DOSSIER_UPLOADS), name="uploads")
+
+TAILLE_MAX_PHOTO = 5 * 1024 * 1024  # 5 Mo
+NB_MAX_PHOTOS = 10
+
+def detecter_extension(contenu: bytes):
+    if contenu.startswith(b"\xff\xd8\xff"):
+        return ".jpg"
+    if contenu.startswith(b"\x89PNG\r\n\x1a\n"):
+        return ".png"
+    if contenu[:4] == b"RIFF" and contenu[8:12] == b"WEBP":
+        return ".webp"
+    return None
+
+def supprimer_fichier_photo(url: str):
+    (DOSSIER_UPLOADS / Path(url).name).unlink(missing_ok=True)
+
 @app.get("/")
 def accueil():
-    return{"massage": "API Immobilier IA en ligne"}
+    return{"message": "API Immobilier IA en ligne"}
 
 @app.post("/utilisateurs/inscription", response_model= schemas.UtilisateurOut)
 def inscrption(utilisateur: schemas.UtilisateurCreate, db:Session = Depends(get_db)):
@@ -139,20 +161,6 @@ def modifier_logement(
     db.refresh(logement)
     return logement
 
-# @app.delete("/logements/{logement_id}")
-# def supprimer_logement(
-#     logement_id: int,
-#     db: Session = Depends(get_db),
-#     utilisateur_courant: dict = Depends(get_utilisateur_courant)
-# ):
-#     logement = db.query(models.Logement).filter(models.Logement.id == logement_id).first()
-#     if not logement :
-#         raise HTTPException(status_code=404, detail="Logement introvable")
-#     if logement.id_proprietaire != utilisateur_courant["id"]:
-#         raise HTTPException(status_code=403, detail="Vous n'être pas propiétaire de ce logement")
-#     db.delete(logement)
-#     db.commit()
-#     return {"message": "Logement supprime avec succès"}
 @app.delete("/logements/{logement_id}")
 def supprimer_logement(
     logement_id: int,
@@ -163,7 +171,7 @@ def supprimer_logement(
     if not logement:
         raise HTTPException(status_code=404, detail="Logement introuvable")
     if logement.id_proprietaire != utilisateur_courant["id"]:
-        raise HTTPException(status_code=403, detail="Vous n'êtes pas propriétaire de ce logement")
+        raise HTTPException(status_code=403, detail="Vous n'êtres pas propriétaire de ce logement")
 
     a_des_locations = db.query(models.Location).filter(
         models.Location.id_logement == logement_id
@@ -174,9 +182,65 @@ def supprimer_logement(
             detail="Ce logement a un historique de locations : il ne peut pas être supprimé"
         )
 
+    urls_photos = [photo.url for photo in logement.photos]
     db.delete(logement)
     db.commit()
+    for url in urls_photos:
+        supprimer_fichier_photo(url)
+
     return {"message": "Logement supprimé avec succès"}
+
+@app.post("/logements/{logement_id}/photos", response_model=schemas.PhotoOut)
+def ajouter_photo(
+    logement_id: int,
+    fichier: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    utilisateur_courant: dict = Depends(get_utilisateur_courant)
+):
+    logement = db.query(models.Logement).filter(models.Logement.id == logement_id).first()
+    if not logement:
+        raise HTTPException(status_code=404, detail="Logement introuvable")
+    if logement.id_proprietaire != utilisateur_courant["id"]:
+        raise HTTPException(status_code=403, detail="Vous n'êtes pas propriétaire de ce logement")
+
+    nb_photos = db.query(models.Photo).filter(models.Photo.id_logement == logement_id).count()
+    if nb_photos >= NB_MAX_PHOTOS:
+        raise HTTPException(status_code=400, detail=f"Maximum {NB_MAX_PHOTOS} photos par logement")
+
+    contenu = fichier.file.read(TAILLE_MAX_PHOTO + 1)
+    if len(contenu) > TAILLE_MAX_PHOTO:
+        raise HTTPException(status_code=413, detail="Photo trop lourde (5 Mo maximum)")
+
+    extension = detecter_extension(contenu)
+    if extension is None:
+        raise HTTPException(status_code=415, detail="Format non accepté (JPEG, PNG ou WebP uniquement)")
+
+    nom_fichier = f"{uuid.uuid4().hex}{extension}"
+    (DOSSIER_UPLOADS / nom_fichier).write_bytes(contenu)
+
+    photo = models.Photo(id_logement=logement_id, url=f"/uploads/{nom_fichier}")
+    db.add(photo)
+    db.commit()
+    db.refresh(photo)
+    return photo
+
+@app.delete("/photos/{photo_id}")
+def supprimer_photo(
+    photo_id: int,
+    db: Session = Depends(get_db),
+    utilisateur_courant: dict = Depends(get_utilisateur_courant)
+):
+    photo = db.query(models.Photo).filter(models.Photo.id == photo_id).first()
+    if not photo:
+        raise HTTPException(status_code=404, detail="Photo introuvable")
+    if photo.logement.id_proprietaire != utilisateur_courant["id"]:
+        raise HTTPException(status_code=403, detail="Vous n'êtes pas propriétaire de ce logement")
+
+    url = photo.url
+    db.delete(photo)
+    db.commit()
+    supprimer_fichier_photo(url)
+    return {"message": "Photo supprimée avec succès"}
 
 @app.post("/locations", response_model= schemas.LocationOut)
 def creer_location(

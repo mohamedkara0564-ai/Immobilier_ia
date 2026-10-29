@@ -29,6 +29,14 @@ class Token(BaseModel):
     access_token : str
     token_type: str
 
+class PhotoOut(BaseModel):
+    id: int
+    id_logement: int
+    url: str
+
+    class Config:
+        from_attributes = True
+
 class LogementCreate(BaseModel):
     titre: str
     description: str | None = None
@@ -57,6 +65,7 @@ class LogementOut(BaseModel):
     quartier: str | None
     adresse: str | None
     statut: str
+    photos: list[PhotoOut] = []
 
     class Config:
         from_attributes = True

@@ -32,6 +32,7 @@ class Logement(Base):
     statut = Column(String, default="disponible")
 
     proprietaire = relationship("Utilisateur")
+    photos = relationship("Photo", back_populates="logement", cascade="all, delete-orphan")
 
 class Location(Base):
     __tablename__ = "locations"
@@ -46,3 +47,12 @@ class Location(Base):
 
     logement = relationship("Logement")
     locataire = relationship("Utilisateur")
+
+class Photo(Base):
+    __tablename__ = "photos"
+
+    id = Column(Integer, primary_key=True, index=True)
+    id_logement = Column(Integer, ForeignKey("logements.id"), nullable=False)
+    url = Column(String, nullable=False)
+
+    logement = relationship("Logement", back_populates="photos")
