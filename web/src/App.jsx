@@ -17,7 +17,7 @@ export default function App() {
   return (
     <div className="conteneur">
       <nav className="navbar">
-        <Link to="/" className="logo">Immobilier IA</Link>
+        <Link to="/" className="logo">ImmoIA</Link>
         <div className="nav-liens">
           {utilisateur ? (
             <>

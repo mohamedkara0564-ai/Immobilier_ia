@@ -1,46 +1,204 @@
+/* ==========================================================
+   ImmoIA : fondations du design
+   1. Variables   2. Base   3. Boutons   4. Champs
+   5. Navigation  6. Cartes   7. Formulaires   8. Détail
+   9. Photos   10. Messages et états   11. Accessibilité
+   ========================================================== */
+
+/* ---------- 1. Variables ---------- */
+:root {
+  /* Couleurs */
+  --bleu: #2563eb;
+  --bleu-fonce: #1d4ed8;
+  --bleu-pale: #eaf1ff;
+  --encre: #0f172a;
+  --encre-douce: #64748b;
+  --fond: #f4f7fc;
+  --surface: #ffffff;
+  --bordure: #e2e8f0;
+  --vert: #15803d;
+  --vert-pale: #e6f6ec;
+  --rouge: #dc2626;
+  --rouge-pale: #fdecec;
+
+  /* Arrondis : du plus petit au plus grand */
+  --rayon-s: 8px;
+  --rayon-m: 12px;
+  --rayon-l: 16px;
+
+  /* Ombres */
+  --ombre: 0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 16px rgba(15, 23, 42, 0.06);
+  --ombre-forte: 0 8px 28px rgba(15, 23, 42, 0.14);
+
+  /* Police */
+  --police: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* ---------- 2. Base ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
-  font-family: system-ui, sans-serif;
-  background: #f5f6fa;
-  color: #222;
+  font-family: var(--police);
+  font-size: 16px;
+  line-height: 1.5;
+  background: var(--fond);
+  color: var(--encre);
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+h1 {
+  font-size: 1.75rem;
+  margin: 0 0 12px;
+}
+
+img {
+  max-width: 100%;
 }
 
 .conteneur {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 24px;
 }
 
-.liste-logements {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+/* ---------- 3. Boutons ---------- */
+/* Bouton principal : lien-bouton et bouton d'envoi des formulaires.
+   On cible [type="submit"] pour ne pas écraser les autres boutons
+   (secondaire, lien, danger...) qui se trouvent dans un formulaire. */
+.bouton-lien,
+.formulaire button[type='submit'] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 18px;
+  border: none;
+  border-radius: var(--rayon-s);
+  background: var(--bleu);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s;
 }
 
-.carte {
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  margin: 20px;
+.formulaire button[type='submit'] {
+  margin-top: 8px;
 }
 
-.carte h2 {
-  margin: 0 0 8px;
-  font-size: 1.1rem;
+.bouton-lien:hover,
+.formulaire button[type='submit']:hover {
+  background: var(--bleu-fonce);
 }
 
-.carte .lieu {
-  color: #666;
-  margin: 0 0 12px;
+.formulaire button[type='submit']:disabled {
+  background: #9db8f5;
+  cursor: not-allowed;
 }
 
-.carte .prix {
-  font-weight: bold;
-  color: #1a7f4b;
-  font-size: 1.1rem;
-  margin: 12px 0 0;
+.bouton-secondaire {
+  display: inline-block;
+  padding: 10px 16px;
+  background: var(--surface);
+  color: var(--bleu);
+  border: 1px solid var(--bleu);
+  border-radius: var(--rayon-s);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
 }
+
+.bouton-secondaire:hover {
+  background: var(--bleu-pale);
+}
+
+.bouton-secondaire:disabled {
+  color: #9db8f5;
+  border-color: #c7d7f9;
+  background: var(--surface);
+  cursor: not-allowed;
+}
+
+.bouton-danger {
+  padding: 10px 16px;
+  background: var(--surface);
+  color: var(--rouge);
+  border: 1px solid var(--rouge);
+  border-radius: var(--rayon-s);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bouton-danger:hover {
+  background: var(--rouge-pale);
+}
+
+.lien {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--bleu);
+  font: inherit;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.lien:hover {
+  text-decoration: underline;
+}
+
+/* ---------- 4. Champs ---------- */
+input:not([type='checkbox']):not([type='radio']),
+select,
+textarea {
+  padding: 10px 12px;
+  background: var(--surface);
+  color: var(--encre);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon-s);
+  font: inherit;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--bleu);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+}
+
+input[type='file'] {
+  padding: 8px;
+  background: var(--fond);
+  border-style: dashed;
+}
+
+.champ {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.champ label,
+.photos > label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .filtres {
   display: flex;
   flex-wrap: wrap;
@@ -48,120 +206,38 @@ body {
   margin: 16px 0 24px;
 }
 
-.filtres input,
-.filtres select {
-  padding: 10px 12px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  font-size: 1rem;
-}
-
-.formulaire {
-  background: white;
-  max-width: 360px;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 16px 0;
-}
-
-.formulaire h2 {
-  margin: 0 0 8px;
-}
-
-.formulaire input {
-  padding: 10px 12px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  font-size: 1rem;
-}
-
-.formulaire button {
-  margin-top: 8px;
-  padding: 10px;
-  border: none;
-  border-radius: 8px;
-  background: #1a7f4b;
-  color: white;
-  font-size: 1rem;
-  cursor: pointer;
-}
-
-.erreur {
-  color: #c0392b;
-  margin: 0;
-}
-.succes {
-  color: #1a7f4b;
-  margin: 8px 0;
-}
-
-.lien {
-  background: none;
-  border: none;
-  color: #1a5fb4;
-  cursor: pointer;
-  padding: 0;
-  font-size: 1rem;
-  text-decoration: underline;
-}
+/* ---------- 5. Navigation (refaite à l'étape 2) ---------- */
 .navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding-bottom: 16px;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--bordure);
   margin-bottom: 24px;
 }
 
 .navbar .logo {
   font-size: 1.4rem;
-  font-weight: bold;
-  color: #1a7f4b;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--bleu);
   text-decoration: none;
 }
 
 .nav-liens {
   display: flex;
+  align-items: center;
   gap: 16px;
 }
 
 .nav-liens a {
-  color: #1a5fb4;
+  color: var(--encre-douce);
+  font-weight: 500;
   text-decoration: none;
 }
 
-.detail ul {
-  padding-left: 20px;
-  line-height: 1.8;
-}
-
-a.carte {
-  display: block;
-  text-decoration: none;
-  color: inherit;
-}
-
-a.carte:hover {
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
-}
-.badge {
-  background: #e8f5ee;
-  color: #1a7f4b;
-  padding: 2px 10px;
-  border-radius: 12px;
-  font-size: 0.85rem;
-}
-.reservation {
-  margin-top: 24px;
-}
-
-.formulaire button:disabled {
-  background: #9bbfae;
-  cursor: not-allowed;
+.nav-liens a:hover {
+  color: var(--bleu);
 }
 
 .entete-page {
@@ -172,43 +248,86 @@ a.carte:hover {
   gap: 12px;
 }
 
-.bouton-lien {
-  background: #1a7f4b;
-  color: white;
-  padding: 10px 16px;
-  border-radius: 8px;
+/* ---------- 6. Cartes ---------- */
+.liste-logements,
+.liste-locations {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.carte {
+  background: var(--surface);
+  border-radius: var(--rayon-m);
+  padding: 16px;
+  box-shadow: var(--ombre);
+}
+
+a.carte {
+  display: block;
+  color: inherit;
   text-decoration: none;
+  transition: box-shadow 0.15s;
+}
+
+a.carte:hover {
+  box-shadow: var(--ombre-forte);
+}
+
+.carte h2,
+.carte h3 {
+  margin: 0 0 6px;
+  font-size: 1.05rem;
+}
+
+.carte p {
+  margin: 2px 0;
+  color: var(--encre-douce);
+  font-size: 0.92rem;
+}
+
+/* Dans CarteLogement, le dernier paragraphe est le prix */
+a.carte p:last-child {
+  margin-top: 8px;
+  color: var(--bleu);
+  font-weight: 700;
+  font-size: 1.05rem;
 }
 
 .item-logement {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  align-items: flex-start;
+  gap: 10px;
 }
 
-.badge-loue {
-  background: #fdecea;
-  color: #c0392b;
+.item-logement .badge {
+  align-self: flex-start;
+}
+
+.actions-logement {
+  display: flex;
+  gap: 8px;
+}
+
+/* ---------- 7. Formulaires ---------- */
+.formulaire {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 420px;
+  margin: 16px 0;
+  padding: 24px;
+  background: var(--surface);
+  border-radius: var(--rayon-l);
+  box-shadow: var(--ombre);
+}
+
+.formulaire h2 {
+  margin: 0 0 4px;
 }
 
 .formulaire-large {
-  max-width: 720px;
-}
-
-.formulaire textarea,
-.formulaire select {
-  padding: 10px 12px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-family: inherit;
-}
-
-.champ {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  max-width: 760px;
 }
 
 .grille-formulaire {
@@ -218,54 +337,189 @@ a.carte:hover {
 }
 
 .estimation {
-  background: #e8f5ee;
-  border-radius: 8px;
-  padding: 12px;
   margin: 8px 0;
+  padding: 14px;
+  background: var(--bleu-pale);
+  border-radius: var(--rayon-s);
 }
 
 .estimation p {
   margin: 8px 0;
 }
 
-.bouton-secondaire {
-  background: white;
-  color: #1a7f4b;
-  border: 1px solid #1a7f4b;
-  border-radius: 8px;
-  padding: 10px 14px;
-  cursor: pointer;
-  font-size: 1rem;
+.estimation small {
+  color: var(--encre-douce);
 }
 
-.bouton-secondaire:disabled {
-  color: #9bbfae;
-  border-color: #9bbfae;
-  cursor: not-allowed;
+/* ---------- 8. Détail d'un logement ---------- */
+.detail ul {
+  padding-left: 20px;
+  line-height: 1.8;
 }
 
-.actions-logement {
+.lieu {
+  margin: 0 0 12px;
+  color: var(--encre-douce);
+}
+
+.prix {
+  margin: 12px 0 0;
+  color: var(--bleu);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.reservation {
+  margin-top: 24px;
+}
+
+/* ---------- 9. Photos ---------- */
+.carte-photo {
+  display: block;
+  width: calc(100% + 32px);
+  height: 180px;
+  margin: -16px -16px 12px;
+  object-fit: cover;
+  border-radius: var(--rayon-m) var(--rayon-m) 0 0;
+}
+
+.carte-photo-vide {
   display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e9eef7;
+  color: var(--encre-douce);
+  font-size: 0.9rem;
+}
+
+.galerie {
+  margin: 16px 0;
+}
+
+.galerie-principale {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  border-radius: var(--rayon-l);
+}
+
+.galerie-miniatures {
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+  margin-top: 8px;
 }
 
-a.bouton-secondaire {
-  text-decoration: none;
-  display: inline-block;
-}
-
-.bouton-danger {
-  background: white;
-  color: #c0392b;
-  border: 1px solid #c0392b;
-  border-radius: 8px;
-  padding: 10px 14px;
+.miniature {
+  width: 80px;
+  height: 60px;
+  padding: 0;
+  background: none;
+  border: 2px solid transparent;
+  border-radius: var(--rayon-s);
+  overflow: hidden;
   cursor: pointer;
-  font-size: 1rem;
 }
 
-.bouton-danger:hover {
-  background: #fdecea;
+.miniature img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.miniature-active {
+  border-color: var(--bleu);
+}
+
+.galerie-vide {
+  margin: 16px 0;
+  padding: 40px;
+  text-align: center;
+  background: #e9eef7;
+  color: var(--encre-douce);
+  border-radius: var(--rayon-l);
+}
+
+.photos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.photos-liste {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.photo-vignette {
+  position: relative;
+  width: 100px;
+  height: 80px;
+}
+
+.photo-vignette img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--rayon-s);
+}
+
+.photo-nouvelle img {
+  outline: 2px dashed var(--bleu);
+  outline-offset: 1px;
+}
+
+.photo-retirer {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--rouge);
+  color: #fff;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* ---------- 10. Messages et états ---------- */
+.erreur {
+  margin: 0;
+  color: var(--rouge);
+  font-weight: 500;
+}
+
+.succes {
+  margin: 8px 0;
+  color: var(--vert);
+  font-weight: 500;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  background: var(--vert-pale);
+  color: var(--vert);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.navbar .badge {
+  background: var(--bleu-pale);
+  color: var(--bleu);
+}
+
+.badge-loue {
+  background: var(--rouge-pale);
+  color: var(--rouge);
 }
 
 .chargement {
@@ -273,20 +527,22 @@ a.bouton-secondaire {
   align-items: center;
   gap: 10px;
   padding: 16px 0;
-  color: #666;
+  color: var(--encre-douce);
 }
 
 .spinner {
   width: 20px;
   height: 20px;
-  border: 3px solid #d5e8dd;
-  border-top-color: #1a7f4b;
+  border: 3px solid var(--bleu-pale);
+  border-top-color: var(--bleu);
   border-radius: 50%;
   animation: rotation 0.8s linear infinite;
 }
 
 @keyframes rotation {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .en-chargement {
@@ -294,72 +550,17 @@ a.bouton-secondaire {
   transition: opacity 0.2s;
 }
 
-/* Photos : carte */
-.carte-photo {
-  display: block;
-  width: calc(100% + 32px);
-  height: 180px;
-  margin: -16px -16px 12px;
-  object-fit: cover;
-  border-radius: 12px 12px 0 0;
-}
-.carte-photo-vide {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #eceff1;
-  color: #90a4ae;
-  font-size: 0.9rem;
+/* ---------- 11. Accessibilité ---------- */
+:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.5);
+  outline-offset: 2px;
 }
 
-/* Photos : galerie */
-.galerie { margin: 16px 0; }
-.galerie-principale {
-  display: block;
-  width: 100%;
-  max-height: 420px;
-  object-fit: cover;
-  border-radius: 12px;
-}
-.galerie-miniatures { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
-.miniature {
-  width: 80px;
-  height: 60px;
-  padding: 0;
-  background: none;
-  border: 2px solid transparent;
-  border-radius: 8px;
-  overflow: hidden;
-  cursor: pointer;
-}
-.miniature img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.miniature-active { border-color: #1a7f4b; }
-.galerie-vide {
-  margin: 16px 0;
-  padding: 40px;
-  text-align: center;
-  background: #eceff1;
-  color: #90a4ae;
-  border-radius: 12px;
-}
-
-/* Photos : formulaire */
-.photos { margin: 16px 0; display: flex; flex-direction: column; gap: 8px; }
-.photos-liste { display: flex; flex-wrap: wrap; gap: 8px; }
-.photo-vignette { position: relative; width: 100px; height: 80px; }
-.photo-vignette img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
-.photo-nouvelle img { outline: 2px dashed #1a7f4b; }
-.photo-retirer {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border-radius: 50%;
-  border: none;
-  background: #c62828;
-  color: white;
-  line-height: 1;
-  cursor: pointer;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
