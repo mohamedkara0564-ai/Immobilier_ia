@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import FormulaireLogement from '../components/FormulaireLogement'
 import { API } from '../config'
@@ -9,6 +9,7 @@ function ModifierLogement() {
   const { id } = useParams()
   const { utilisateur } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [logement, setLogement] = useState(null)
   const [erreur, setErreur] = useState('')
   const [chargement, setChargement] = useState(true)
@@ -48,12 +49,17 @@ function ModifierLogement() {
     return <p className="erreur">Vous n'êtes pas propriétaire de ce logement.</p>
   }
 
-  return (
-    <FormulaireLogement
-      key={logement.id}
-      logement={logement}
-      onSucces={() => navigate('/mes-logements')}
-    />
+    return (
+    <>
+      {location.state?.avertissement && (
+        <p className="erreur">{location.state.avertissement}</p>
+      )}
+      <FormulaireLogement
+        key={logement.id}
+        logement={logement}
+        onSucces={() => navigate('/mes-logements')}
+      />
+    </>
   )
 }
 

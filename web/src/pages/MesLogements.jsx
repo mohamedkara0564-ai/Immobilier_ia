@@ -44,7 +44,7 @@ function MesLogements() {
 
     setErreurAction('')
     try {
-      const reponse = await fetch(`http://localhost:8000/logements/${logement.id}`, {
+      const reponse = await fetch(`${API}/logements/${logement.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       })

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import FormulaireReservation from '../components/FormulaireReservation'
-import { API } from '../config'
+import { API, urlPhoto } from '../config'
 import Chargement from '../components/Chargement'
 
 export default function DetailLogement() {
@@ -9,9 +9,11 @@ export default function DetailLogement() {
   const [logement, setLogement] = useState(null)
   const [erreur, setErreur] = useState('')
   const [chargement, setChargement] = useState(true)
+  const [photoActive, setPhotoActive] = useState(0)
 
   useEffect(() => {
     async function charger() {
+      setPhotoActive(0)
       try {
         const reponse = await fetch(`${API}/logements/${id}`)
         if (!reponse.ok) {
@@ -46,6 +48,32 @@ export default function DetailLogement() {
       <p className="lieu">
         {logement.type} à {logement.quartier ? `${logement.quartier}, ` : ''}{logement.ville}
       </p>
+      {logement.photos.length > 0 ? (
+        <div className="galerie">
+          <img
+            className="galerie-principale"
+            src={urlPhoto(logement.photos[photoActive].url)}
+            alt={`${logement.titre}, photo ${photoActive + 1}`}
+          />
+          {logement.photos.length > 1 && (
+            <div className="galerie-miniatures">
+              {logement.photos.map((photo, index) => (
+                <button
+                  type="button"
+                  key={photo.id}
+                  className={index === photoActive ? 'miniature miniature-active' : 'miniature'}
+                  onClick={() => setPhotoActive(index)}
+                  aria-label={`Voir la photo ${index + 1}`}
+                >
+                  <img src={urlPhoto(photo.url)} alt="" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="galerie-vide">Aucune photo pour ce logement</div>
+      )}
       <p>{logement.description}</p>
       <ul>
         <li>{logement.surface} m²</li>

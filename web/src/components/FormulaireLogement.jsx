@@ -1,7 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { QUARTIERS, TYPES } from '../constantes'
-import { API } from '../config'
+import { API, urlPhoto } from '../config'
+
+const TYPES_IMAGES = ['image/jpeg', 'image/png', 'image/webp']
+const TAILLE_MAX = 5 * 1024 * 1024
+const NB_MAX_PHOTOS = 10
 
 const CHAMPS_ESTIMATION = ['type', 'quartier', 'surface', 'nb_chambres', 'nb_salons', 'nb_salles_de_bains']
 
@@ -45,6 +49,16 @@ function FormulaireLogement({ logement, onSucces }) {
   const [estimationEnCours, setEstimationEnCours] = useState(false)
   const [erreur, setErreur] = useState('')
   const [envoi, setEnvoi] = useState(false)
+  const [photosExistantes, setPhotosExistantes] = useState(() => logement?.photos ?? [])
+  const [fichiers, setFichiers] = useState([])
+  const [apercus, setApercus] = useState([])
+  const [erreurPhotos, setErreurPhotos] = useState('')
+
+  useEffect(() => {
+    const urls = fichiers.map(f => URL.createObjectURL(f))
+    setApercus(urls)
+    return () => urls.forEach(u => URL.revokeObjectURL(u))
+  }, [fichiers])
 
   function modifier(e) {
     const { name, value } = e.target
@@ -89,6 +103,83 @@ function FormulaireLogement({ logement, onSucces }) {
     }
   }
 
+    function choisirFichiers(e) {
+    const choisis = Array.from(e.target.files)
+    e.target.value = ''
+    setErreurPhotos('')
+
+    const acceptes = []
+    const refus = []
+    for (const fichier of choisis) {
+      if (!TYPES_IMAGES.includes(fichier.type)) refus.push(`${fichier.name} : format non accepté`)
+      else if (fichier.size > TAILLE_MAX) refus.push(`${fichier.name} : plus de 5 Mo`)
+      else acceptes.push(fichier)
+    }
+
+    const place = Math.max(NB_MAX_PHOTOS - photosExistantes.length - fichiers.length, 0)
+    if (acceptes.length > place) refus.push(`Maximum ${NB_MAX_PHOTOS} photos par logement`)
+
+    setFichiers([...fichiers, ...acceptes.slice(0, place)])
+    if (refus.length > 0) setErreurPhotos(refus.join(' ; '))
+  }
+
+  function retirerFichier(index) {
+    setFichiers(fichiers.filter((_, i) => i !== index))
+  }
+
+  async function supprimerPhotoExistante(photo) {
+    if (!window.confirm('Supprimer cette photo ?')) return
+    setErreurPhotos('')
+    try {
+      const reponse = await fetch(`${API}/photos/${photo.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (reponse.status === 401) {
+        deconnecter()
+        return
+      }
+      if (!reponse.ok) {
+        setErreurPhotos('Suppression de la photo impossible')
+        return
+      }
+      setPhotosExistantes(photosExistantes.filter(p => p.id !== photo.id))
+    } catch {
+      setErreurPhotos('Impossible de joindre le serveur')
+    }
+  }
+
+  async function envoyerPhotos(idLogement) {
+    const reussies = []
+    const echoues = []
+    const messages = []
+
+    for (const fichier of fichiers) {
+      try {
+        const donnees = new FormData()
+        donnees.append('fichier', fichier)
+
+        const reponse = await fetch(`${API}/logements/${idLogement}/photos`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: donnees
+        })
+
+        if (reponse.ok) {
+          reussies.push(await reponse.json())
+        } else {
+          const data = await reponse.json().catch(() => ({}))
+          echoues.push(fichier)
+          messages.push(`${fichier.name} : ${messageErreur(data, 'envoi refusé')}`)
+        }
+      } catch {
+        echoues.push(fichier)
+        messages.push(`${fichier.name} : serveur injoignable`)
+      }
+    }
+    return { reussies, echoues, messages }
+  }
+
   async function soumettre(e) {
     e.preventDefault()
     setErreur('')
@@ -127,7 +218,22 @@ function FormulaireLogement({ logement, onSucces }) {
         return
       }
 
-      onSucces()
+            const idLogement = modification ? logement.id : data.id
+      const { reussies, echoues, messages } = await envoyerPhotos(idLogement)
+
+      if (echoues.length === 0) {
+        onSucces(idLogement, 0)
+        return
+      }
+
+      if (modification) {
+        setPhotosExistantes([...photosExistantes, ...reussies])
+        setFichiers(echoues)
+        setErreur(`Logement enregistré, mais ${echoues.length} photo(s) non envoyée(s) : ${messages.join(' ; ')}`)
+        return
+      }
+
+      onSucces(idLogement, echoues.length)
     } catch {
       setErreur('Impossible de joindre le serveur')
     } finally {
@@ -194,6 +300,38 @@ function FormulaireLogement({ logement, onSucces }) {
 
       <Champ label="Loyer mensuel (FCFA)" name="prix" type="number" min="1"
         valeur={form.prix} onChange={modifier} required />
+
+      <div className="photos">
+        <label htmlFor="photos">
+          Photos ({photosExistantes.length + fichiers.length}/{NB_MAX_PHOTOS})
+        </label>
+
+        {(photosExistantes.length > 0 || fichiers.length > 0) && (
+          <div className="photos-liste">
+            {photosExistantes.map(photo => (
+              <div key={photo.id} className="photo-vignette">
+                <img src={urlPhoto(photo.url)} alt="Photo du logement" />
+                <button type="button" className="photo-retirer"
+                  aria-label="Supprimer cette photo"
+                  onClick={() => supprimerPhotoExistante(photo)}>×</button>
+              </div>
+            ))}
+            {fichiers.map((fichier, index) => (
+              <div key={`${fichier.name}-${index}`} className="photo-vignette photo-nouvelle">
+                {apercus[index] && <img src={apercus[index]} alt={fichier.name} />}
+                <button type="button" className="photo-retirer"
+                  aria-label={`Retirer ${fichier.name}`}
+                  onClick={() => retirerFichier(index)}>×</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <input id="photos" type="file" accept="image/jpeg,image/png,image/webp"
+          multiple onChange={choisirFichiers} />
+        <small>JPEG, PNG ou WebP, 5 Mo maximum par photo. Les nouvelles photos sont envoyées à l'enregistrement.</small>
+        {erreurPhotos && <p className="erreur">{erreurPhotos}</p>}
+      </div>
 
       {erreur && <p className="erreur">{erreur}</p>}
 
