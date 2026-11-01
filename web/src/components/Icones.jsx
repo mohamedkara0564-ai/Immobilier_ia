@@ -88,3 +88,4 @@ export const IconePin = () => (
     <circle cx="12" cy="10" r="3" />
   </Icone>
 )
+export const IconeSalon = IconeStudio

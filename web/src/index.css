@@ -195,6 +195,7 @@ input[type='file'] {
 }
 
 .champ label,
+.formulaire label,
 .photos > label {
   font-size: 0.9rem;
   font-weight: 600;
@@ -615,25 +616,126 @@ input[type='file'] {
 }
 
 /* ---------- 8. Détail d'un logement ---------- */
-.detail ul {
-  padding-left: 20px;
-  line-height: 1.8;
+.detail-entete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 12px 0 4px;
 }
 
-.lieu {
-  margin: 0 0 12px;
+.detail-entete h1 {
+  margin: 0;
+}
+
+.detail-lieu {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 24px;
   color: var(--encre-douce);
 }
 
-.prix {
-  margin: 12px 0 0;
+.detail-lieu svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
   color: var(--bleu);
-  font-size: 1.5rem;
-  font-weight: 700;
 }
 
-.reservation {
-  margin-top: 24px;
+.detail-lieu span {
+  text-transform: capitalize;
+}
+
+.detail-grille {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 32px;
+  align-items: start;
+}
+
+.caracteristiques {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 24px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.caracteristiques li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon-m);
+  font-weight: 500;
+}
+
+.caracteristiques svg {
+  flex: none;
+  color: var(--bleu);
+}
+
+.detail-section {
+  margin-bottom: 24px;
+}
+
+.detail-section h2 {
+  margin: 0 0 8px;
+  font-size: 1.2rem;
+}
+
+.detail-section p {
+  margin: 0;
+  white-space: pre-line;
+}
+
+.carte-reservation {
+  position: sticky;
+  top: 88px;
+  padding: 24px;
+  background: var(--surface);
+  border-radius: var(--rayon-l);
+  box-shadow: var(--ombre);
+}
+
+.carte-reservation-prix {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--bordure);
+}
+
+.carte-reservation .prix {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.carte-reservation .prix span {
+  color: var(--encre-douce);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+/* Le formulaire de réservation vit déjà dans une carte : on retire son propre cadre */
+.carte-reservation .formulaire {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+
+@media (max-width: 900px) {
+  .detail-grille {
+    grid-template-columns: 1fr;
+  }
+
+  .carte-reservation {
+    position: static;
+  }
 }
 
 /* ---------- 9. Photos ---------- */
@@ -644,7 +746,7 @@ input[type='file'] {
 .galerie-principale {
   display: block;
   width: 100%;
-  max-height: 420px;
+  aspect-ratio: 16 / 10;
   object-fit: cover;
   border-radius: var(--rayon-l);
 }
