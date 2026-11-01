@@ -1,7 +1,7 @@
 /* ==========================================================
    ImmoIA : fondations du design
    1. Variables   2. Base   3. Boutons   4. Champs
-   5. Navigation  6. Cartes   7. Formulaires   8. Détail
+   5. Navigation et bannière  6. Cartes (6b catégories)   7. Formulaires   8. Détail
    9. Photos   10. Messages et états   11. Accessibilité
    ========================================================== */
 
@@ -11,6 +11,7 @@
   --bleu: #2563eb;
   --bleu-fonce: #1d4ed8;
   --bleu-pale: #eaf1ff;
+  --bleu-nuit: #1e3a8a;
   --encre: #0f172a;
   --encre-douce: #64748b;
   --fond: #f4f7fc;
@@ -206,38 +207,138 @@ input[type='file'] {
   margin: 16px 0 24px;
 }
 
-/* ---------- 5. Navigation (refaite à l'étape 2) ---------- */
+/* ---------- 5. Navigation et bannière ---------- */
 .navbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--surface);
   border-bottom: 1px solid var(--bordure);
-  margin-bottom: 24px;
 }
 
-.navbar .logo {
-  font-size: 1.4rem;
+.navbar-interieur {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 12px 24px;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--bleu);
+  font-size: 1.3rem;
   font-weight: 800;
   letter-spacing: -0.03em;
-  color: var(--bleu);
   text-decoration: none;
+}
+
+.logo svg {
+  width: 28px;
+  height: 28px;
 }
 
 .nav-liens {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 4px;
 }
 
 .nav-liens a {
+  padding: 8px 12px;
+  border-radius: var(--rayon-s);
   color: var(--encre-douce);
   font-weight: 500;
   text-decoration: none;
 }
 
-.nav-liens a:hover {
+.nav-liens a:hover,
+.nav-liens a.active {
+  background: var(--bleu-pale);
   color: var(--bleu);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-actions .bouton-lien,
+.nav-actions .bouton-secondaire {
+  padding: 8px 14px;
+}
+
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bleu);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.banniere {
+  margin-bottom: 28px;
+  padding: 40px 32px 32px;
+  background: var(--bleu-nuit);
+  color: #fff;
+  border-radius: var(--rayon-l);
+}
+
+.banniere h1 {
+  max-width: 22ch;
+  margin: 0 0 8px;
+  font-size: clamp(1.7rem, 4vw, 2.5rem);
+}
+
+.banniere p {
+  max-width: 52ch;
+  margin: 0;
+  color: #c9d8ff;
+}
+
+.banniere .filtres {
+  margin: 28px 0 0;
+  padding: 12px;
+  background: var(--surface);
+  border-radius: var(--rayon-m);
+  box-shadow: var(--ombre-forte);
+}
+
+.banniere .filtres input,
+.banniere .filtres select {
+  flex: 1 1 170px;
+}
+
+@media (max-width: 720px) {
+  .navbar-interieur {
+    padding: 10px 16px;
+  }
+
+  .nav-liens {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .banniere {
+    padding: 28px 20px 20px;
+  }
+
+  .categories {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .entete-page {
@@ -263,17 +364,6 @@ input[type='file'] {
   box-shadow: var(--ombre);
 }
 
-a.carte {
-  display: block;
-  color: inherit;
-  text-decoration: none;
-  transition: box-shadow 0.15s;
-}
-
-a.carte:hover {
-  box-shadow: var(--ombre-forte);
-}
-
 .carte h2,
 .carte h3 {
   margin: 0 0 6px;
@@ -284,14 +374,6 @@ a.carte:hover {
   margin: 2px 0;
   color: var(--encre-douce);
   font-size: 0.92rem;
-}
-
-/* Dans CarteLogement, le dernier paragraphe est le prix */
-a.carte p:last-child {
-  margin-top: 8px;
-  color: var(--bleu);
-  font-weight: 700;
-  font-size: 1.05rem;
 }
 
 .item-logement {
@@ -307,6 +389,187 @@ a.carte p:last-child {
 .actions-logement {
   display: flex;
   gap: 8px;
+}
+
+/* ---------- 6b. Catégories, en-tête de liste, carte de logement ---------- */
+.categories {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.categorie {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 8px;
+  background: var(--surface);
+  color: var(--encre);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon-m);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.categorie svg {
+  color: var(--bleu);
+}
+
+.categorie:hover {
+  border-color: var(--bleu);
+}
+
+.categorie[aria-pressed='true'] {
+  background: var(--bleu-pale);
+  border-color: var(--bleu);
+  color: var(--bleu);
+}
+
+.entete-liste {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
+  margin-bottom: 16px;
+}
+
+.entete-liste h2 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.entete-liste .lien {
+  margin-left: auto;
+}
+
+.compteur {
+  color: var(--encre-douce);
+}
+
+.etat-vide {
+  padding: 32px;
+  background: var(--surface);
+  color: var(--encre-douce);
+  border-radius: var(--rayon-m);
+  text-align: center;
+}
+
+.carte-logement {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--surface);
+  color: inherit;
+  border-radius: var(--rayon-m);
+  box-shadow: var(--ombre);
+  text-decoration: none;
+  transition: box-shadow 0.15s;
+}
+
+.carte-logement:hover {
+  box-shadow: var(--ombre-forte);
+}
+
+.carte-image {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: #e9eef7;
+}
+
+.carte-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.carte-image-vide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9fb0cc;
+}
+
+.carte-image-vide svg {
+  width: 48px;
+  height: 48px;
+}
+
+.carte-type {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--bleu);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.carte-corps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+}
+
+.carte-prix {
+  margin: 0;
+  color: var(--bleu);
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.carte-prix span {
+  color: var(--encre-douce);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.carte-titre {
+  margin: 0;
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+
+.carte-lieu {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--encre-douce);
+  font-size: 0.9rem;
+}
+
+.carte-lieu svg,
+.carte-caracs svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.carte-caracs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 8px 0 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--bordure);
+  color: var(--encre-douce);
+  font-size: 0.9rem;
+  list-style: none;
+}
+
+.carte-caracs li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* ---------- 7. Formulaires ---------- */
@@ -374,24 +637,6 @@ a.carte p:last-child {
 }
 
 /* ---------- 9. Photos ---------- */
-.carte-photo {
-  display: block;
-  width: calc(100% + 32px);
-  height: 180px;
-  margin: -16px -16px 12px;
-  object-fit: cover;
-  border-radius: var(--rayon-m) var(--rayon-m) 0 0;
-}
-
-.carte-photo-vide {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #e9eef7;
-  color: var(--encre-douce);
-  font-size: 0.9rem;
-}
-
 .galerie {
   margin: 16px 0;
 }
