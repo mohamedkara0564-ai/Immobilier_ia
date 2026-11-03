@@ -97,6 +97,7 @@ class LocationOut(BaseModel):
     date_fin: date
     montant_loyer: float
     statut: str
+    logement: LogementOut | None = None
 
     class Config:
         from_attributes = True

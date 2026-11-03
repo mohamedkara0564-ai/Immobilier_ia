@@ -1,5 +1,6 @@
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import Connexion from '../components/Connexion'
+import PageAuth from '../components/PageAuth'
 import { useAuth } from '../context/AuthContext'
 
 function PageConnexion() {
@@ -8,7 +9,7 @@ function PageConnexion() {
   const { connecter } = useAuth()
 
   return (
-    <div>
+    <PageAuth>
       {location.state?.info && <p className="succes">{location.state.info}</p>}
 
       <Connexion onConnexion={(token) => {
@@ -16,8 +17,10 @@ function PageConnexion() {
         navigate('/')
       }} />
 
-      <Link to="/inscription" className="lien">Pas de compte ? S'inscrire</Link>
-    </div>
+      <p className="auth-bascule">
+        Pas de compte ? <Link to="/inscription" className="lien">S'inscrire</Link>
+      </p>
+    </PageAuth>
   )
 }
 
