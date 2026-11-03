@@ -9,6 +9,11 @@ function pluriel(nombre, mot) {
   return `${nombre} ${mot}${nombre > 1 ? 's' : ''}`
 }
 
+function numeroInternational(telephone) {
+  const chiffres = telephone.replace(/\D/g, '')
+  return chiffres.startsWith('225') ? chiffres : `225${chiffres}`
+}
+
 export default function DetailLogement() {
   const { id } = useParams()
   const [logement, setLogement] = useState(null)
@@ -47,6 +52,11 @@ export default function DetailLogement() {
   }
 
   const lieu = [logement.quartier, logement.ville].filter(Boolean).join(', ')
+  const proprietaire = logement.proprietaire
+  const telephone = proprietaire?.telephone
+  const initiales = proprietaire
+    ? `${proprietaire.prenom[0]}${proprietaire.nom[0]}`.toUpperCase()
+    : ''
 
   const caracteristiques = [
     { Icone: IconeSurface, valeur: logement.surface, texte: `${logement.surface} m²` },
@@ -121,16 +131,39 @@ export default function DetailLogement() {
           )}
         </div>
 
-        <aside className="carte-reservation">
-          <div className="carte-reservation-prix">
-            <p className="prix">
-              {logement.prix.toLocaleString('fr-FR')} FCFA <span>/ mois</span>
-            </p>
+                <aside className="detail-lateral">
+          <div className="carte-reservation">
+            <div className="carte-reservation-prix">
+              <p className="prix">
+                {logement.prix.toLocaleString('fr-FR')} FCFA <span>/ mois</span>
+              </p>
+            </div>
+            <FormulaireReservation
+              logement={logement}
+              onReservation={() => setLogement({ ...logement, statut: 'loué' })}
+            />
           </div>
-          <FormulaireReservation
-            logement={logement}
-            onReservation={() => setLogement({ ...logement, statut: 'loué' })}
-          />
+
+          {proprietaire && (
+            <div className="carte-proprietaire">
+              <div className="proprietaire-identite">
+                <span className="avatar avatar-grand">{initiales}</span>
+                <div>
+                  <p className="proprietaire-nom">{proprietaire.prenom} {proprietaire.nom}</p>
+                  <p className="proprietaire-role">Propriétaire</p>
+                </div>
+              </div>
+
+              {telephone && (
+                <>
+                  <a className="bouton-lien" href={`tel:${telephone}`}>Appeler {telephone}</a>
+                  <a className="bouton-secondaire"
+                    href={`https://wa.me/${numeroInternational(telephone)}`}
+                    target="_blank" rel="noopener noreferrer">WhatsApp</a>
+                </>
+              )}
+            </div>
+          )}
         </aside>
       </div>
     </div>

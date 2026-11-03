@@ -689,9 +689,15 @@ input[type='file'] {
   white-space: pre-line;
 }
 
-.carte-reservation {
+.detail-lateral {
   position: sticky;
   top: 88px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.carte-reservation {
   padding: 24px;
   background: var(--surface);
   border-radius: var(--rayon-l);
@@ -724,12 +730,45 @@ input[type='file'] {
   box-shadow: none;
 }
 
+.carte-proprietaire {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  background: var(--surface);
+  border-radius: var(--rayon-l);
+  box-shadow: var(--ombre);
+}
+
+.proprietaire-identite {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.proprietaire-nom {
+  margin: 0;
+  font-weight: 700;
+}
+
+.proprietaire-role {
+  margin: 0;
+  color: var(--encre-douce);
+  font-size: 0.9rem;
+}
+
+.carte-proprietaire .bouton-lien,
+.carte-proprietaire .bouton-secondaire {
+  width: 100%;
+  text-align: center;
+}
+
 @media (max-width: 900px) {
   .detail-grille {
     grid-template-columns: 1fr;
   }
 
-  .carte-reservation {
+  .detail-lateral {
     position: static;
   }
 }

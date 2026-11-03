@@ -132,7 +132,7 @@ def mes_logements(db: Session = Depends(get_db), utilisateur_courant: dict = Dep
     return db.query(models.Logement).filter(models.Logement.id_proprietaire
      == utilisateur_courant["id"]).all()
 
-@app.get("/logements/{logement_id}", response_model=schemas.LogementOut)
+@app.get("/logements/{logement_id}", response_model=schemas.LogementDetailOut)
 def detail_logement(logement_id: int, db: Session = Depends(get_db)):
     logement = db.query(models.Logement).filter(models.Logement.id == logement_id).first()
     if not logement:

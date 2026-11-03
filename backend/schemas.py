@@ -37,6 +37,15 @@ class PhotoOut(BaseModel):
     class Config:
         from_attributes = True
 
+class ProprietaireOut(BaseModel):
+    id: int
+    nom: str
+    prenom: str
+    telephone: str | None
+
+    class Config:
+        from_attributes = True
+
 class LogementCreate(BaseModel):
     titre: str
     description: str | None = None
@@ -69,6 +78,9 @@ class LogementOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+class LogementDetailOut(LogementOut):
+    proprietaire: ProprietaireOut | None = None
 
 class LogementUpdate(BaseModel):
     titre: str | None = None
