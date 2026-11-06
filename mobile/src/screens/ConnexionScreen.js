@@ -9,16 +9,37 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../theme';
+import { useAuth } from '../context/AuthContext';
 
 export default function ConnexionScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
   const [motDePasseVisible, setMotDePasseVisible] = useState(false);
   const [sesouvenir, setSeSouvenir] = useState(false);
+  const [chargement, setChargement] = useState(false);
+  const { seConnecter } = useAuth();
+
+  const handleConnexion = async () => {
+    if (!email.trim() || !motDePasse.trim()) {
+      Alert.alert('Champs requis', 'Veuillez remplir l\'email et le mot de passe.');
+      return;
+    }
+    setChargement(true);
+    try {
+      await seConnecter(email.trim(), motDePasse);
+      // Navigation automatique grâce au AuthContext
+    } catch (error) {
+      Alert.alert('Erreur de connexion', error.message);
+    } finally {
+      setChargement(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -27,11 +48,7 @@ export default function ConnexionScreen({ navigation }) {
     >
       <StatusBar barStyle="light-content" backgroundColor="#1565C0" />
 
-      {/* En-tête bleue */}
-      <LinearGradient
-        colors={['#0D47A1', '#1565C0']}
-        style={styles.header}
-      >
+      <LinearGradient colors={['#0D47A1', '#1565C0']} style={styles.header}>
         <View style={styles.logoIcon}>
           <Ionicons name="home" size={28} color={theme.colors.primary} />
         </View>
@@ -39,7 +56,6 @@ export default function ConnexionScreen({ navigation }) {
         <Text style={styles.headerSubtitle}>Accédez à votre espace locataire</Text>
       </LinearGradient>
 
-      {/* Formulaire */}
       <ScrollView
         style={styles.formContainer}
         contentContainerStyle={styles.formContent}
@@ -47,7 +63,6 @@ export default function ConnexionScreen({ navigation }) {
       >
         <Text style={styles.formTitle}>Connexion</Text>
 
-        {/* Champ Email */}
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Email ou téléphone</Text>
           <View style={styles.inputWrapper}>
@@ -64,7 +79,6 @@ export default function ConnexionScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Champ Mot de passe */}
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Mot de passe</Text>
           <View style={styles.inputWrapper}>
@@ -78,69 +92,54 @@ export default function ConnexionScreen({ navigation }) {
               secureTextEntry={!motDePasseVisible}
             />
             <TouchableOpacity onPress={() => setMotDePasseVisible(!motDePasseVisible)}>
-              <Ionicons
-                name={motDePasseVisible ? 'eye-outline' : 'eye-off-outline'}
-                size={20}
-                color={theme.colors.textSecondary}
-              />
+              <Ionicons name={motDePasseVisible ? 'eye-outline' : 'eye-off-outline'} size={20} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Se souvenir + Mot de passe oublié */}
         <View style={styles.optionsRow}>
-          <TouchableOpacity
-            style={styles.checkboxRow}
-            onPress={() => setSeSouvenir(!sesouvenir)}
-          >
+          <TouchableOpacity style={styles.checkboxRow} onPress={() => setSeSouvenir(!sesouvenir)}>
             <View style={[styles.checkbox, sesouvenir && styles.checkboxChecked]}>
               {sesouvenir && <Ionicons name="checkmark" size={12} color="#fff" />}
             </View>
             <Text style={styles.checkboxLabel}>Se souvenir de moi</Text>
           </TouchableOpacity>
-
           <TouchableOpacity>
             <Text style={styles.forgotLink}>Mot de passe oublié ?</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Bouton Se connecter */}
         <TouchableOpacity
-          style={styles.btnPrimary}
-          onPress={() => navigation.navigate('Dashboard')}
+          style={[styles.btnPrimary, chargement && { opacity: 0.7 }]}
+          onPress={handleConnexion}
+          disabled={chargement}
           activeOpacity={0.85}
         >
-          <LinearGradient
-            colors={['#1565C0', '#1E88E5']}
-            style={styles.btnGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          >
-            <Text style={styles.btnPrimaryText}>Se connecter</Text>
+          <LinearGradient colors={['#1565C0', '#1E88E5']} style={styles.btnGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+            {chargement
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={styles.btnPrimaryText}>Se connecter</Text>
+            }
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* Séparateur */}
         <View style={styles.separatorRow}>
           <View style={styles.separatorLine} />
           <Text style={styles.separatorText}>ou</Text>
           <View style={styles.separatorLine} />
         </View>
 
-        {/* Boutons sociaux */}
         <View style={styles.socialRow}>
           <TouchableOpacity style={styles.btnSocial}>
             <Ionicons name="logo-google" size={20} color="#EA4335" />
             <Text style={styles.btnSocialText}>Google</Text>
           </TouchableOpacity>
-
           <TouchableOpacity style={styles.btnSocial}>
             <Ionicons name="logo-facebook" size={20} color="#1877F2" />
             <Text style={styles.btnSocialText}>Facebook</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Lien inscription */}
         <View style={styles.inscriptionRow}>
           <Text style={styles.inscriptionText}>Vous n'avez pas de compte ? </Text>
           <TouchableOpacity onPress={() => navigation.navigate('Inscription')}>

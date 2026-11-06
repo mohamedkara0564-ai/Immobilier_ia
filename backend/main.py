@@ -20,8 +20,8 @@ colonne_modele = joblib.load("ml_model/colonnes_modele.joblib")
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
-    allow_credentials=True,
+    allow_origins=["*"],  # Dev : accepte toutes les origines (mobile inclus)
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"]
 )
@@ -76,9 +76,12 @@ def connexion(identifiant: schemas.UtilisateurLogin, db:Session = Depends(get_db
     token = creer_token_access(data={"sub": utilisateur.email, "id": utilisateur.id, "role": utilisateur.role})
     return {"access_token": token, "token_type": "bearer"}
 
-@app.get("/utilisateurs/moi")
-def mon_profil(utilisateur_courant : dict= Depends(get_utilisateur_courant)):
-    return utilisateur_courant
+@app.get("/utilisateurs/moi", response_model=schemas.UtilisateurOut)
+def mon_profil(utilisateur_courant: dict = Depends(get_utilisateur_courant), db: Session = Depends(get_db)):
+    utilisateur = db.query(models.Utilisateur).filter(models.Utilisateur.id == utilisateur_courant["id"]).first()
+    if not utilisateur:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    return utilisateur
 
 @app.post("/logements", response_model= schemas.LogementOut)
 def creer_logement(
@@ -132,7 +135,7 @@ def mes_logements(db: Session = Depends(get_db), utilisateur_courant: dict = Dep
     return db.query(models.Logement).filter(models.Logement.id_proprietaire
      == utilisateur_courant["id"]).all()
 
-@app.get("/logements/{logement_id}", response_model=schemas.LogementDetailOut)
+@app.get("/logements/{logement_id}", response_model=schemas.LogementOut)
 def detail_logement(logement_id: int, db: Session = Depends(get_db)):
     logement = db.query(models.Logement).filter(models.Logement.id == logement_id).first()
     if not logement:
