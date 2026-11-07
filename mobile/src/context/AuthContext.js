@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { connexionAPI, monProfilAPI, mesLocationsAPI } from '../services/api';
+import { connexionAPI, monProfilAPI, mesLocationsAPI, mesNotificationsAPI } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -9,17 +9,22 @@ export function AuthProvider({ children }) {
   const [utilisateur, setUtilisateur] = useState(null);
   const [location, setLocation] = useState(null);
   const [chargement, setChargement] = useState(true);
+  const [notifNonLues, setNotifNonLues] = useState(0);
 
-  // Restaurer la session au démarrage
+  const rafraichirNotifs = async (tok) => {
+    try {
+      const notifs = await mesNotificationsAPI(tok);
+      setNotifNonLues(notifs.filter(n => n.lu === 'false').length);
+    } catch {}
+  };
+
   useEffect(() => {
     const restaurerSession = async () => {
       try {
         const tokenStocke = await AsyncStorage.getItem('token');
         if (tokenStocke) {
           const profil = await monProfilAPI(tokenStocke);
-          // Vérifier que le profil contient bien les champs attendus
           if (!profil.nom || !profil.prenom) {
-            // Token valide mais profil incomplet → forcer reconnexion
             await AsyncStorage.removeItem('token');
             setChargement(false);
             return;
@@ -28,6 +33,7 @@ export function AuthProvider({ children }) {
           setUtilisateur(profil);
           const locations = await mesLocationsAPI(tokenStocke);
           if (locations.length > 0) setLocation(locations[0]);
+          await rafraichirNotifs(tokenStocke);
         }
       } catch {
         await AsyncStorage.removeItem('token');
@@ -43,13 +49,11 @@ export function AuthProvider({ children }) {
     const nouveauToken = data.access_token;
     await AsyncStorage.setItem('token', nouveauToken);
     setToken(nouveauToken);
-
     const profil = await monProfilAPI(nouveauToken);
     setUtilisateur(profil);
-
     const locations = await mesLocationsAPI(nouveauToken);
     if (locations.length > 0) setLocation(locations[0]);
-
+    await rafraichirNotifs(nouveauToken);
     return profil;
   };
 
@@ -58,10 +62,15 @@ export function AuthProvider({ children }) {
     setToken(null);
     setUtilisateur(null);
     setLocation(null);
+    setNotifNonLues(0);
   };
 
   return (
-    <AuthContext.Provider value={{ token, utilisateur, location, chargement, seConnecter, seDeconnecter }}>
+    <AuthContext.Provider value={{
+      token, utilisateur, location, chargement,
+      notifNonLues, setNotifNonLues, rafraichirNotifs,
+      seConnecter, seDeconnecter,
+    }}>
       {children}
     </AuthContext.Provider>
   );

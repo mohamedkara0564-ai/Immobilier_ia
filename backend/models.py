@@ -112,3 +112,17 @@ class Demande(Base):
 
     locataire = relationship("Utilisateur")
     logement = relationship("Logement")
+
+class Notification(Base):
+    __tablename__ = "notifications_app"
+
+    id = Column(Integer, primary_key=True, index=True)
+    id_utilisateur = Column(Integer, ForeignKey("utilisateurs.id"), nullable=False)
+    titre = Column(String, nullable=False)
+    message = Column(String, nullable=False)
+    type = Column(String, nullable=False)  # paiement, demande, loyer, info, ia
+    lu = Column(String, default="false")
+    date_creation = Column(Date, nullable=False)
+    heure = Column(String, nullable=False)
+
+    utilisateur = relationship("Utilisateur")

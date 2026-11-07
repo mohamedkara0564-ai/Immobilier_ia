@@ -20,7 +20,7 @@ const accesRapide = [
 ];
 
 export default function DashboardScreen({ navigation }) {
-  const { utilisateur, location } = useAuth();
+  const { utilisateur, location, notifNonLues } = useAuth();
 
   const prenom = utilisateur?.prenom || utilisateur?.nom || 'Utilisateur';
   const initiales = utilisateur
@@ -46,10 +46,15 @@ export default function DashboardScreen({ navigation }) {
           <View style={styles.headerActions}>
             <TouchableOpacity
               style={styles.clochBtn}
-              onPress={() => navigation.navigate('Notifications')}
-            >
+              onPress={() => navigation.navigate('Notifications')}>
               <Ionicons name="notifications-outline" size={22} color={theme.colors.white} />
-              <View style={styles.clochBadge} />
+              {notifNonLues > 0 && (
+                <View style={styles.clochBadge}>
+                  <Text style={styles.clochBadgeText}>
+                    {notifNonLues > 9 ? '9+' : notifNonLues}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>{initiales}</Text>
@@ -168,7 +173,8 @@ const styles = StyleSheet.create({
   subGreeting: { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   clochBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', position: 'relative' },
-  clochBadge: { position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: '#EF4444', borderWidth: 1, borderColor: theme.colors.primary },
+clochBadge: {position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: '#EF4444', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: theme.colors.primary, paddingHorizontal: 3,},
+clochBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700',},
   avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.25)', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.5)' },
   avatarText: { color: theme.colors.white, fontWeight: '700', fontSize: 15 },
   scrollView: { flex: 1 },

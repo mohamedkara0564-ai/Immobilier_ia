@@ -162,3 +162,34 @@ export const creerDemandeAPI = async (token, titre, description, typeDemande, id
   if (!response.ok) throw new Error(data.detail || 'Erreur création demande');
   return data;
 };
+
+// ─── Notifications ───────────────────────────────────────────────────────────
+
+export const mesNotificationsAPI = async (token) => {
+  const response = await fetch(`${BASE_URL}/notifications`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || 'Erreur notifications');
+  return data;
+};
+
+export const marquerLueAPI = async (token, notifId) => {
+  const response = await fetch(`${BASE_URL}/notifications/${notifId}/lire`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || 'Erreur');
+  return data;
+};
+
+export const toutMarquerLuAPI = async (token) => {
+  const response = await fetch(`${BASE_URL}/notifications/tout-lire`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || 'Erreur');
+  return data;
+};

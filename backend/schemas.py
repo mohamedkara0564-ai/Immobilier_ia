@@ -183,3 +183,15 @@ class DemandeOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+class NotificationOut(BaseModel):
+    id: int
+    titre: str
+    message: str
+    type: str
+    lu: str
+    date_creation: date
+    heure: str
+
+    class Config:
+        from_attributes = True

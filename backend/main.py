@@ -517,6 +517,14 @@ def effectuer_paiement(
     db.add(nouveau_paiement)
     db.commit()
     db.refresh(nouveau_paiement)
+        # Créer une notification de confirmation
+    creer_notification(
+        db,
+        utilisateur_courant["id"],
+        "Paiement confirmé ✅",
+        f"Votre loyer de {int(nouveau_paiement.montant):,} FCFA pour {nouveau_paiement.mois_concerne} a été reçu. Réf: #{nouveau_paiement.reference}".replace(",", " "),
+        "paiement"
+    )
     return nouveau_paiement
 
 # ─── Demandes d'assistance ───────────────────────────────────────────────────
@@ -550,6 +558,14 @@ def creer_demande(
     db.add(nouvelle_demande)
     db.commit()
     db.refresh(nouvelle_demande)
+        # Créer une notification
+    creer_notification(
+        db,
+        utilisateur_courant["id"],
+        "Demande envoyée 📋",
+        f"Votre demande '{nouvelle_demande.titre}' a bien été transmise. Vous recevrez une réponse sous 24h.",
+        "demande"
+    )
     return nouvelle_demande
 
 @app.put("/demandes/{demande_id}/statut", response_model=schemas.DemandeOut)
@@ -577,3 +593,57 @@ def mettre_a_jour_statut(
     db.commit()
     db.refresh(demande)
     return demande
+
+# ─── Notifications ───────────────────────────────────────────────────────────
+
+def creer_notification(db, id_utilisateur: int, titre: str, message: str, type_notif: str):
+    """Utilitaire pour créer une notification automatiquement."""
+    from datetime import date as date_obj, datetime
+    notif = models.Notification(
+        id_utilisateur=id_utilisateur,
+        titre=titre,
+        message=message,
+        type=type_notif,
+        lu="false",
+        date_creation=date_obj.today(),
+        heure=datetime.now().strftime("%H:%M"),
+    )
+    db.add(notif)
+    db.commit()
+
+@app.get("/notifications", response_model=list[schemas.NotificationOut])
+def mes_notifications(
+    db: Session = Depends(get_db),
+    utilisateur_courant: dict = Depends(get_utilisateur_courant)
+):
+    return db.query(models.Notification).filter(
+        models.Notification.id_utilisateur == utilisateur_courant["id"]
+    ).order_by(models.Notification.id.desc()).all()
+
+@app.put("/notifications/tout-lire")
+def tout_marquer_lu(
+    db: Session = Depends(get_db),
+    utilisateur_courant: dict = Depends(get_utilisateur_courant)
+):
+    db.query(models.Notification).filter(
+        models.Notification.id_utilisateur == utilisateur_courant["id"],
+        models.Notification.lu == "false"
+    ).update({"lu": "true"})
+    db.commit()
+    return {"message": "Toutes les notifications marquées comme lues"}
+
+@app.put("/notifications/{notif_id}/lire")
+def marquer_lue(
+    notif_id: int,
+    db: Session = Depends(get_db),
+    utilisateur_courant: dict = Depends(get_utilisateur_courant)
+):
+    notif = db.query(models.Notification).filter(
+        models.Notification.id == notif_id,
+        models.Notification.id_utilisateur == utilisateur_courant["id"]
+    ).first()
+    if not notif:
+        raise HTTPException(status_code=404, detail="Notification introuvable")
+    notif.lu = "true"
+    db.commit()
+    return {"message": "Notification marquée comme lue"}
