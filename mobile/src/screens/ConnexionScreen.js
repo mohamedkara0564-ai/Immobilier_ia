@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -52,7 +52,7 @@ export default function ConnexionScreen({ navigation }) {
         <View style={styles.logoIcon}>
           <Ionicons name="home" size={28} color={theme.colors.primary} />
         </View>
-        <Text style={styles.logoText}>HomeLink</Text>
+        <Text style={styles.logoText}>ImmoIA</Text>
         <Text style={styles.headerSubtitle}>Accédez à votre espace locataire</Text>
       </LinearGradient>
 

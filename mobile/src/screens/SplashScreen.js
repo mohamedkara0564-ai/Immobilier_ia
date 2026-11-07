@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -39,7 +39,7 @@ export default function SplashScreen({ navigation }) {
           <View style={styles.logoIcon}>
             <Ionicons name="home" size={40} color={theme.colors.primary} />
           </View>
-          <Text style={styles.logoText}>HomeLink</Text>
+          <Text style={styles.logoText}>ImmoIA</Text>
           <Text style={styles.logoSubtitle}>Votre logement, notre priorité</Text>
         </View>
 

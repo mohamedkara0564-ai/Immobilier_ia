@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   StatusBar, ScrollView, KeyboardAvoidingView, Platform, Alert, ActivityIndicator,
@@ -59,7 +59,7 @@ export default function InscriptionScreen({ navigation }) {
         <View style={styles.logoIcon}>
           <Ionicons name="home" size={26} color={theme.colors.primary} />
         </View>
-        <Text style={styles.logoText}>HomeLink</Text>
+        <Text style={styles.logoText}>ImmoIA</Text>
         <Text style={styles.headerSubtitle}>Créez votre espace locataire</Text>
       </LinearGradient>
 

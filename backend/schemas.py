@@ -124,3 +124,62 @@ class PredictionInput(BaseModel):
 
 class PredictionOut(BaseModel):
     prix_estime: float
+
+class MessageIACreate(BaseModel):
+    contenu: str
+
+class MessageIAOut(BaseModel):
+    id: int
+    role: str
+    contenu: str
+    horodatage: str
+
+    class Config:
+        from_attributes = True
+
+class ConversationOut(BaseModel):
+    id: int
+    titre: str
+    date_creation: date
+    messages: list[MessageIAOut] = []
+
+    class Config:
+        from_attributes = True
+
+class PaiementCreate(BaseModel):
+    id_location: int
+    montant: float
+    moyen_paiement: str
+    mois_concerne: str
+
+class PaiementOut(BaseModel):
+    id: int
+    id_location: int
+    montant: float
+    moyen_paiement: str
+    statut: str
+    date_paiement: date
+    reference: str
+    mois_concerne: str
+
+    class Config:
+        from_attributes = True
+
+class DemandeCreate(BaseModel):
+    titre: str
+    description: str
+    type_demande: str
+    id_logement: int | None = None
+
+class DemandeOut(BaseModel):
+    id: int
+    titre: str
+    description: str
+    type_demande: str
+    statut: str
+    date_creation: date
+    date_mise_a_jour: date | None = None
+    photo_url: str | None = None
+
+    class Config:
+        from_attributes = True

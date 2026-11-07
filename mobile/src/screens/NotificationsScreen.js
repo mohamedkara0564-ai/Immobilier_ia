@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -63,7 +63,7 @@ const notificationsData = [
   {
     id: '5',
     type: 'info',
-    titre: 'Bienvenue sur HomeLink !',
+    titre: 'Bienvenue sur ImmoIA !',
     message: 'Merci de faire confiance à notre plateforme !',
     date: '5 mars 2025',
     heure: '12:00',

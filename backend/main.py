@@ -286,3 +286,294 @@ def pridire_prix(donnee: schemas.PredictionInput):
     predict_prix = modele_prix.predict(df_final)[0]
 
     return {"prix_estime": round(float(predict_prix),2)}
+
+# ─── Agent IA ────────────────────────────────────────────────────────────────
+
+from datetime import date as date_today
+import os as _os
+from google import genai as google_genai
+from google.genai import types as genai_types
+
+# Initialisation Gemini
+GEMINI_API_KEY = _os.getenv("GEMINI_API_KEY")
+client_gemini = google_genai.Client(api_key=GEMINI_API_KEY)
+
+def generer_contexte_locataire(utilisateur, location) -> str:
+    """Construit le contexte personnalisé du locataire pour Gemini."""
+    if not utilisateur:
+        return ""
+
+    contexte = f"""Tu es l'assistant IA de l'application ImmoIA, une plateforme de gestion locative.
+Tu aides les locataires à gérer leur vie locative.
+Réponds toujours en français, de façon concise et bienveillante.
+N'invente jamais d'informations — base-toi uniquement sur les données ci-dessous.
+
+=== INFORMATIONS DU LOCATAIRE ===
+Prénom : {utilisateur.prenom}
+Nom : {utilisateur.nom}
+Email : {utilisateur.email}
+Téléphone : {utilisateur.telephone or 'Non renseigné'}
+"""
+
+    if location:
+        logement = location.logement
+        contexte += f"""
+=== LOCATION ACTIVE ===
+Logement : {logement.titre if logement else 'Non renseigné'}
+Type : {logement.type if logement else '---'}
+Adresse : {logement.adresse or 'Non renseignée'}, {logement.ville if logement else ''}
+Loyer mensuel : {int(location.montant_loyer):,} FCFA
+Date de début : {location.date_debut.strftime('%d/%m/%Y')}
+Date de fin : {location.date_fin.strftime('%d/%m/%Y')}
+Statut : {location.statut}
+"""
+        if logement:
+            contexte += f"""
+=== DÉTAILS DU LOGEMENT ===
+Surface : {logement.surface or 'Non renseignée'} m²
+Chambres : {logement.nb_chambres or 'Non renseigné'}
+Salles de bain : {logement.nb_salles_de_bains or 'Non renseigné'}
+Description : {logement.description or 'Aucune description'}
+"""
+    else:
+        contexte += "\n=== PAS DE LOCATION ACTIVE ===\nLe locataire n'a pas de logement loué actuellement.\n"
+
+    contexte += """
+=== FONCTIONNALITÉS DE L'APPLICATION ===
+- Onglet "Mon Logement" : voir les détails du logement et le contrat
+- Onglet "Paiement" : payer le loyer et voir l'historique
+- Onglet "Mes demandes" : signaler un problème ou faire une demande
+- Onglet "Notifications" : voir les alertes et rappels
+- Onglet "Profil" : modifier ses informations personnelles
+
+Réponds de façon claire, courte et utile. Si tu ne sais pas, dis-le honnêtement.
+"""
+    return contexte
+
+async def generer_reponse_ia(message: str, utilisateur, location) -> str:
+    """Génère une réponse via Gemini avec fallback sur plusieurs modèles."""
+    contexte = generer_contexte_locataire(utilisateur, location)
+    prompt = f"{contexte}\n\n=== MESSAGE DU LOCATAIRE ===\n{message}"
+    
+    modeles = [
+        "gemini-3.5-flash",
+        "gemini-3.5-flash-lite",
+        "gemini-3.1-flash-lite",
+    ]
+    
+    for modele in modeles:
+        try:
+            response = await client_gemini.aio.models.generate_content(
+                model=modele,
+                contents=prompt
+            )
+            print(f"Gemini OK avec {modele}")
+            return response.text
+        except Exception as e:
+            print(f"Gemini erreur {modele}: {e}")
+            continue
+    
+    # Tous les modèles ont échoué → fallback local
+    prenom = utilisateur.prenom if utilisateur else "locataire"
+    if location:
+        loyer = f"{int(location.montant_loyer):,} FCFA".replace(",", " ")
+        date_fin = location.date_fin.strftime("%d/%m/%Y")
+        msg = message.lower()
+        if any(w in msg for w in ["loyer", "payer", "paiement", "montant"]):
+            return f"Votre prochain loyer est de {loyer}, prévu le {date_fin}."
+        if any(w in msg for w in ["contrat", "bail", "début", "fin"]):
+            return f"Votre contrat va du {location.date_debut.strftime('%d/%m/%Y')} au {date_fin}, pour {loyer}/mois."
+    return f"Je suis temporairement indisponible, {prenom}. Réessayez dans quelques instants. 🙏"
+
+@app.get("/conversations", response_model=list[schemas.ConversationOut])
+def mes_conversations(
+    db: Session = Depends(get_db),
+    utilisateur_courant: dict = Depends(get_utilisateur_courant)
+):
+    return db.query(models.Conversation).filter(
+        models.Conversation.id_locataire == utilisateur_courant["id"]
+    ).all()
+
+@app.post("/conversations", response_model=schemas.ConversationOut)
+def creer_conversation(
+    db: Session = Depends(get_db),
+    utilisateur_courant: dict = Depends(get_utilisateur_courant)
+):
+    conv = models.Conversation(
+        id_locataire=utilisateur_courant["id"],
+        titre="Nouvelle conversation",
+        date_creation=date_today.today()
+    )
+    db.add(conv)
+    db.commit()
+    db.refresh(conv)
+    return conv
+
+@app.post("/conversations/{conv_id}/messages", response_model=schemas.MessageIAOut)
+async def envoyer_message(
+    conv_id: int,
+    message: schemas.MessageIACreate,
+    db: Session = Depends(get_db),
+    utilisateur_courant: dict = Depends(get_utilisateur_courant)
+):
+    from datetime import datetime
+
+    conv = db.query(models.Conversation).filter(
+        models.Conversation.id == conv_id,
+        models.Conversation.id_locataire == utilisateur_courant["id"]
+    ).first()
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation introuvable")
+
+    maintenant = datetime.now().strftime("%H:%M")
+
+    # Sauvegarder le message utilisateur
+    msg_user = models.MessageIA(
+        id_conversation=conv_id,
+        role="utilisateur",
+        contenu=message.contenu,
+        horodatage=maintenant
+    )
+    db.add(msg_user)
+
+    # Récupérer les infos du locataire
+    utilisateur = db.query(models.Utilisateur).filter(
+        models.Utilisateur.id == utilisateur_courant["id"]
+    ).first()
+    location = db.query(models.Location).filter(
+        models.Location.id_locataire == utilisateur_courant["id"],
+        models.Location.statut == "active"
+    ).first()
+
+    # Générer et sauvegarder la réponse IA
+    reponse = await generer_reponse_ia(message.contenu, utilisateur, location)
+    msg_ia = models.MessageIA(
+        id_conversation=conv_id,
+        role="ia",
+        contenu=reponse,
+        horodatage=maintenant
+    )
+    db.add(msg_ia)
+    db.commit()
+    db.refresh(msg_ia)
+    return msg_ia
+
+@app.get("/conversations/{conv_id}/messages", response_model=list[schemas.MessageIAOut])
+def historique_messages(
+    conv_id: int,
+    db: Session = Depends(get_db),
+    utilisateur_courant: dict = Depends(get_utilisateur_courant)
+):
+    conv = db.query(models.Conversation).filter(
+        models.Conversation.id == conv_id,
+        models.Conversation.id_locataire == utilisateur_courant["id"]
+    ).first()
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation introuvable")
+    return db.query(models.MessageIA).filter(
+        models.MessageIA.id_conversation == conv_id
+    ).all()
+
+# ─── Paiements ───────────────────────────────────────────────────────────────
+
+import uuid as uuid_module
+
+@app.get("/paiements/mes_paiements", response_model=list[schemas.PaiementOut])
+def mes_paiements(
+    db: Session = Depends(get_db),
+    utilisateur_courant: dict = Depends(get_utilisateur_courant)
+):
+    return db.query(models.Paiement).filter(
+        models.Paiement.id_locataire == utilisateur_courant["id"]
+    ).order_by(models.Paiement.date_paiement.desc()).all()
+
+@app.post("/paiements", response_model=schemas.PaiementOut)
+def effectuer_paiement(
+    paiement: schemas.PaiementCreate,
+    db: Session = Depends(get_db),
+    utilisateur_courant: dict = Depends(get_utilisateur_courant)
+):
+    from datetime import date as date_obj
+
+    location = db.query(models.Location).filter(
+        models.Location.id == paiement.id_location,
+        models.Location.id_locataire == utilisateur_courant["id"]
+    ).first()
+    if not location:
+        raise HTTPException(status_code=404, detail="Location introuvable")
+
+    reference = f"PAY-{uuid_module.uuid4().hex[:8].upper()}"
+
+    nouveau_paiement = models.Paiement(
+        id_location=paiement.id_location,
+        id_locataire=utilisateur_courant["id"],
+        montant=paiement.montant,
+        moyen_paiement=paiement.moyen_paiement,
+        statut="payé",
+        date_paiement=date_obj.today(),
+        reference=reference,
+        mois_concerne=paiement.mois_concerne,
+    )
+    db.add(nouveau_paiement)
+    db.commit()
+    db.refresh(nouveau_paiement)
+    return nouveau_paiement
+
+# ─── Demandes d'assistance ───────────────────────────────────────────────────
+
+@app.get("/demandes/mes_demandes", response_model=list[schemas.DemandeOut])
+def mes_demandes(
+    db: Session = Depends(get_db),
+    utilisateur_courant: dict = Depends(get_utilisateur_courant)
+):
+    return db.query(models.Demande).filter(
+        models.Demande.id_locataire == utilisateur_courant["id"]
+    ).order_by(models.Demande.date_creation.desc()).all()
+
+@app.post("/demandes", response_model=schemas.DemandeOut)
+def creer_demande(
+    demande: schemas.DemandeCreate,
+    db: Session = Depends(get_db),
+    utilisateur_courant: dict = Depends(get_utilisateur_courant)
+):
+    from datetime import date as date_obj
+
+    nouvelle_demande = models.Demande(
+        id_locataire=utilisateur_courant["id"],
+        id_logement=demande.id_logement,
+        titre=demande.titre,
+        description=demande.description,
+        type_demande=demande.type_demande,
+        statut="Nouvelle",
+        date_creation=date_obj.today(),
+    )
+    db.add(nouvelle_demande)
+    db.commit()
+    db.refresh(nouvelle_demande)
+    return nouvelle_demande
+
+@app.put("/demandes/{demande_id}/statut", response_model=schemas.DemandeOut)
+def mettre_a_jour_statut(
+    demande_id: int,
+    statut: str,
+    db: Session = Depends(get_db),
+    utilisateur_courant: dict = Depends(get_utilisateur_courant)
+):
+    from datetime import date as date_obj
+
+    demande = db.query(models.Demande).filter(
+        models.Demande.id == demande_id,
+        models.Demande.id_locataire == utilisateur_courant["id"]
+    ).first()
+    if not demande:
+        raise HTTPException(status_code=404, detail="Demande introuvable")
+
+    statuts_valides = ["Nouvelle", "En cours", "Résolue", "Clôturée"]
+    if statut not in statuts_valides:
+        raise HTTPException(status_code=400, detail=f"Statut invalide. Valeurs: {statuts_valides}")
+
+    demande.statut = statut
+    demande.date_mise_a_jour = date_obj.today()
+    db.commit()
+    db.refresh(demande)
+    return demande

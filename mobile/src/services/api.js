@@ -58,3 +58,107 @@ export const detailLogementAPI = async (token, logementId) => {
   if (!response.ok) throw new Error(data.detail || 'Erreur logement');
   return data;
 };
+
+// ─── Agent IA ────────────────────────────────────────────────────────────────
+
+export const mesConversationsAPI = async (token) => {
+  const response = await fetch(`${BASE_URL}/conversations`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || 'Erreur conversations');
+  return data;
+};
+
+export const creerConversationAPI = async (token) => {
+  const response = await fetch(`${BASE_URL}/conversations`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || 'Erreur création conversation');
+  return data;
+};
+
+export const envoyerMessageAPI = async (token, convId, contenu) => {
+  const response = await fetch(`${BASE_URL}/conversations/${convId}/messages`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ contenu }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || 'Erreur envoi message');
+  return data;
+};
+
+export const historiqueMessagesAPI = async (token, convId) => {
+  const response = await fetch(`${BASE_URL}/conversations/${convId}/messages`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || 'Erreur historique');
+  return data;
+};
+
+// ─── Paiements ───────────────────────────────────────────────────────────────
+
+export const mesPaiementsAPI = async (token) => {
+  const response = await fetch(`${BASE_URL}/paiements/mes_paiements`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || 'Erreur paiements');
+  return data;
+};
+
+export const effectuerPaiementAPI = async (token, idLocation, montant, moyenPaiement, moisConcerne) => {
+  const response = await fetch(`${BASE_URL}/paiements`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      id_location: idLocation,
+      montant,
+      moyen_paiement: moyenPaiement,
+      mois_concerne: moisConcerne,
+    }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || 'Erreur paiement');
+  return data;
+};
+
+// ─── Demandes ────────────────────────────────────────────────────────────────
+
+export const mesDemandesAPI = async (token) => {
+  const response = await fetch(`${BASE_URL}/demandes/mes_demandes`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || 'Erreur demandes');
+  return data;
+};
+
+export const creerDemandeAPI = async (token, titre, description, typeDemande, idLogement = null) => {
+  const response = await fetch(`${BASE_URL}/demandes`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      titre,
+      description,
+      type_demande: typeDemande,
+      id_logement: idLogement,
+    }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || 'Erreur création demande');
+  return data;
+};

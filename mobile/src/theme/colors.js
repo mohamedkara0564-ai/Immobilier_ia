@@ -1,5 +1,5 @@
-const colors = {
-  primary: '#1565C0',       // Bleu principal HomeLink
+﻿const colors = {
+  primary: '#1565C0',       // Bleu principal ImmoIA
   primaryLight: '#1E88E5',  // Bleu clair
   primaryDark: '#0D47A1',   // Bleu foncé
   secondary: '#FF6F00',     // Orange accent

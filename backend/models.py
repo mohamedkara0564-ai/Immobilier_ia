@@ -56,3 +56,59 @@ class Photo(Base):
     url = Column(String, nullable=False)
 
     logement = relationship("Logement", back_populates="photos")
+
+class Conversation(Base):
+    __tablename__ = "conversations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    id_locataire = Column(Integer, ForeignKey("utilisateurs.id"), nullable=False)
+    titre = Column(String, default="Nouvelle conversation")
+    date_creation = Column(Date, nullable=False)
+
+    locataire = relationship("Utilisateur")
+    messages = relationship("MessageIA", back_populates="conversation", cascade="all, delete-orphan")
+
+class MessageIA(Base):
+    __tablename__ = "messages_ia"
+
+    id = Column(Integer, primary_key=True, index=True)
+    id_conversation = Column(Integer, ForeignKey("conversations.id"), nullable=False)
+    role = Column(String, nullable=False)  # "utilisateur" ou "ia"
+    contenu = Column(String, nullable=False)
+    horodatage = Column(String, nullable=False)
+
+    conversation = relationship("Conversation", back_populates="messages")
+
+class Paiement(Base):
+    __tablename__ = "paiements"
+
+    id = Column(Integer, primary_key=True, index=True)
+    id_location = Column(Integer, ForeignKey("locations.id"), nullable=False)
+    id_locataire = Column(Integer, ForeignKey("utilisateurs.id"), nullable=False)
+    montant = Column(Float, nullable=False)
+    moyen_paiement = Column(String, nullable=False)  # orange_money, mtn, carte
+    statut = Column(String, default="payé")
+    date_paiement = Column(Date, nullable=False)
+    reference = Column(String, nullable=False)
+    mois_concerne = Column(String, nullable=False)  # ex: "Mai 2025"
+
+    location = relationship("Location")
+    locataire = relationship("Utilisateur")
+
+
+class Demande(Base):
+    __tablename__ = "demandes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    id_locataire = Column(Integer, ForeignKey("utilisateurs.id"), nullable=False)
+    id_logement = Column(Integer, ForeignKey("logements.id"), nullable=True)
+    titre = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+    type_demande = Column(String, nullable=False)
+    statut = Column(String, default="Nouvelle")
+    date_creation = Column(Date, nullable=False)
+    date_mise_a_jour = Column(Date, nullable=True)
+    photo_url = Column(String, nullable=True)
+
+    locataire = relationship("Utilisateur")
+    logement = relationship("Logement")
