@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: immo-ia-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: immo-ia-db
+          property: connectionString
+      - key: SECRET_KEY
+        sync: false
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 60
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SASPAY_API_KEY
+        sync: false
+      - key: SASPAY_WEBHOOK_SECRET
+        sync: false
+      - key: APP_URL
+        sync: false
+
+databases:
+  - name: immo-ia-db
+    plan: free
+    databaseName: immobilier_ia
