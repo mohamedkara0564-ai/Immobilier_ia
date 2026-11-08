@@ -1,8 +1,5 @@
-// URL de ton backend — remplace par ton IP locale si tu testes sur téléphone physique
-// Exemple téléphone physique : 'http://192.168.1.XX:8000'
-// Expo Go sur émulateur iOS : 'http://localhost:8000'
-// Expo Go sur émulateur Android : 'http://10.0.2.2:8000'
-const BASE_URL = 'http://192.168.1.67:8000';
+// URL de ton backend hébergé sur Render
+const BASE_URL = 'https://immobilier-ia.onrender.com';
 
 // ─── Authentification ───────────────────────────────────────────────────────
 
@@ -192,4 +189,43 @@ export const toutMarquerLuAPI = async (token) => {
   const data = await response.json();
   if (!response.ok) throw new Error(data.detail || 'Erreur');
   return data;
+};
+
+// ─── SasPay ──────────────────────────────────────────────────────────────────
+
+export const initierPaiementSasPayAPI = async (token, idLocation, network, country, telephone, moisConcerne) => {
+  const response = await fetch(`${BASE_URL}/paiements/saspay/initier`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      id_location: idLocation,
+      network,
+      country,
+      telephone,
+      mois_concerne: moisConcerne,
+    }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || 'Erreur SasPay');
+  return data; // { payment_id, id_paiement_local, checkout_url, statut }
+};
+
+export const verifierPaiementSasPayAPI = async (token, paymentId, idPaiementLocal) => {
+  const response = await fetch(`${BASE_URL}/paiements/saspay/verifier`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      payment_id: paymentId,
+      id_paiement_local: idPaiementLocal,
+    }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || 'Erreur vérification');
+  return data; // { statut: PENDING|SUCCESS|FAILED, payment_id, net_amount, charged }
 };
