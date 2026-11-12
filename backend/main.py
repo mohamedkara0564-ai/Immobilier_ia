@@ -35,6 +35,17 @@ app.mount("/uploads", StaticFiles(directory=DOSSIER_UPLOADS), name="uploads")
 TAILLE_MAX_PHOTO = 5 * 1024 * 1024  # 5 Mo
 NB_MAX_PHOTOS = 10
 
+# ── Supabase Storage ─────────────────────────────────────────────────────────
+from supabase import create_client, Client as SupabaseClient
+
+SUPABASE_URL    = os.getenv("SUPABASE_URL", "")
+SUPABASE_KEY    = os.getenv("SUPABASE_SERVICE_KEY", "")
+SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "photos-logements")
+
+supabase_client: SupabaseClient | None = None
+if SUPABASE_URL and SUPABASE_KEY:
+    supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
 def detecter_extension(contenu: bytes):
     if contenu.startswith(b"\xff\xd8\xff"):
         return ".jpg"
@@ -45,7 +56,15 @@ def detecter_extension(contenu: bytes):
     return None
 
 def supprimer_fichier_photo(url: str):
-    (DOSSIER_UPLOADS / Path(url).name).unlink(missing_ok=True)
+    """Supprime depuis Supabase Storage ou localement selon l'URL."""
+    if supabase_client and "supabase" in url:
+        nom = url.split("/")[-1]
+        try:
+            supabase_client.storage.from_(SUPABASE_BUCKET).remove([nom])
+        except Exception:
+            pass
+    else:
+        (DOSSIER_UPLOADS / Path(url).name).unlink(missing_ok=True)
 
 @app.get("/")
 def accueil():
@@ -221,9 +240,26 @@ def ajouter_photo(
         raise HTTPException(status_code=415, detail="Format non accepté (JPEG, PNG ou WebP uniquement)")
 
     nom_fichier = f"{uuid.uuid4().hex}{extension}"
-    (DOSSIER_UPLOADS / nom_fichier).write_bytes(contenu)
 
-    photo = models.Photo(id_logement=logement_id, url=f"/uploads/{nom_fichier}")
+    # Upload vers Supabase Storage si disponible, sinon local
+    if supabase_client:
+        try:
+            content_type = "image/jpeg" if extension == ".jpg" else "image/png" if extension == ".png" else "image/webp"
+            supabase_client.storage.from_(SUPABASE_BUCKET).upload(
+                path=nom_fichier,
+                file=contenu,
+                file_options={"content-type": content_type, "upsert": "true"}
+            )
+            url_photo = f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/{nom_fichier}"
+        except Exception as e:
+            # Fallback local si Supabase échoue
+            (DOSSIER_UPLOADS / nom_fichier).write_bytes(contenu)
+            url_photo = f"/uploads/{nom_fichier}"
+    else:
+        (DOSSIER_UPLOADS / nom_fichier).write_bytes(contenu)
+        url_photo = f"/uploads/{nom_fichier}"
+
+    photo = models.Photo(id_logement=logement_id, url=url_photo)
     db.add(photo)
     db.commit()
     db.refresh(photo)
