@@ -195,3 +195,14 @@ class NotificationOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+class SasPaySoftpayRequest(BaseModel):
+    id_location: int
+    network: str         # ex: mtn_ci, orange_ci
+    country: str         # ex: CI, BJ, SN
+    telephone: str       # ex: +22507000000
+    mois_concerne: str
+
+class SasPayVerifyRequest(BaseModel):
+    payment_id: str
+    id_paiement_local: int

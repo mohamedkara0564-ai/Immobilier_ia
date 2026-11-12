@@ -11,6 +11,8 @@ from typing import Optional
 from security import hacher_mdp, verifier_mdp, creer_token_access, get_utilisateur_courant
 import joblib
 import pandas as pd
+import os
+import httpx
 
 Base.metadata.create_all(bind= engine)
 
@@ -647,3 +649,209 @@ def marquer_lue(
     notif.lu = "true"
     db.commit()
     return {"message": "Notification marquée comme lue"}
+
+# ─── SasPay ──────────────────────────────────────────────────────────────────
+
+from fastapi import Request
+import hashlib, hmac, time
+
+SASPAY_API_KEY     = os.getenv("SASPAY_API_KEY", "")
+SASPAY_WEBHOOK_SECRET = os.getenv("SASPAY_WEBHOOK_SECRET", "")
+SASPAY_BASE        = "https://api.saspay.me/api/v1"
+
+
+@app.post("/paiements/saspay/initier")
+async def initier_paiement_saspay(
+    body: schemas.SasPaySoftpayRequest,
+    db: Session = Depends(get_db),
+    utilisateur_courant: dict = Depends(get_utilisateur_courant)
+):
+    from datetime import date as date_obj
+
+    location = db.query(models.Location).filter(
+        models.Location.id == body.id_location,
+        models.Location.id_locataire == utilisateur_courant["id"]
+    ).first()
+    if not location:
+        raise HTTPException(status_code=404, detail="Location introuvable")
+
+    utilisateur = db.query(models.Utilisateur).filter(
+        models.Utilisateur.id == utilisateur_courant["id"]
+    ).first()
+
+    # Montant en chaîne décimale (obligatoire selon SasPay)
+    montant_str = f"{location.montant_loyer:.2f}"
+    idempotency_key = str(uuid.uuid4())
+
+    payload = {
+        "amount": montant_str,
+        "currency": "XOF",
+        "country": body.country,
+        "network": body.network,
+        "description": f"Loyer ImmoIA — {body.mois_concerne}",
+        "customer": {
+            "email": utilisateur.email,
+            "first_name": utilisateur.prenom,
+            "last_name": utilisateur.nom,
+            "phone": body.telephone,
+        },
+    }
+
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                f"{SASPAY_BASE}/payments/softpay/",
+                json=payload,
+                headers={
+                    "Authorization": f"Bearer {SASPAY_API_KEY}",
+                    "Content-Type": "application/json",
+                    "Idempotency-Key": idempotency_key,
+                },
+                timeout=30.0,
+            )
+        except httpx.RequestError as e:
+            raise HTTPException(status_code=503, detail=f"Impossible de joindre SasPay : {e}")
+
+    data = response.json()
+
+    if response.status_code == 401:
+        raise HTTPException(status_code=401, detail="Clé API SasPay invalide ou absente")
+    if response.status_code == 422:
+        raise HTTPException(status_code=422, detail=data.get("error", {}).get("message", "Erreur SasPay"))
+    if response.status_code == 429:
+        raise HTTPException(status_code=429, detail="Trop de requêtes SasPay, réessayez dans un instant")
+    if response.status_code not in [200, 201]:
+        raise HTTPException(status_code=response.status_code, detail=data.get("error", {}).get("message", "Erreur SasPay"))
+
+    saspay_data = data.get("data", data)
+    payment_id  = saspay_data.get("id", "")
+    checkout_url = saspay_data.get("checkout_url", "")
+
+    # Enregistrer le paiement en attente
+    nouveau_paiement = models.Paiement(
+        id_location=body.id_location,
+        id_locataire=utilisateur_courant["id"],
+        montant=location.montant_loyer,
+        moyen_paiement=body.network,
+        statut="en_attente",
+        date_paiement=date_obj.today(),
+        reference=payment_id or idempotency_key,
+        mois_concerne=body.mois_concerne,
+    )
+    db.add(nouveau_paiement)
+    db.commit()
+    db.refresh(nouveau_paiement)
+
+    return {
+        "payment_id": payment_id,
+        "id_paiement_local": nouveau_paiement.id,
+        "checkout_url": checkout_url,   # non vide → rediriger le client
+        "statut": "en_attente",
+        "message": "Demande envoyée. Confirmez sur votre téléphone." if not checkout_url
+                   else "Redirigez le client vers checkout_url.",
+    }
+
+
+@app.post("/paiements/saspay/verifier")
+async def verifier_paiement_saspay(
+    body: schemas.SasPayVerifyRequest,
+    db: Session = Depends(get_db),
+    utilisateur_courant: dict = Depends(get_utilisateur_courant)
+):
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                f"{SASPAY_BASE}/payments/{body.payment_id}/verify/",
+                headers={"Authorization": f"Bearer {SASPAY_API_KEY}"},
+                timeout=30.0,
+            )
+        except httpx.RequestError as e:
+            raise HTTPException(status_code=503, detail=f"Impossible de joindre SasPay : {e}")
+
+    if response.status_code == 404:
+        raise HTTPException(status_code=404, detail="Paiement SasPay introuvable")
+    if response.status_code not in [200, 201]:
+        raise HTTPException(status_code=response.status_code, detail="Erreur vérification SasPay")
+
+    data = response.json()
+    saspay_data = data.get("data", data)
+    statut_saspay = saspay_data.get("status", "PENDING").upper()
+
+    # Mettre à jour le paiement local uniquement sur SUCCESS
+    if statut_saspay == "SUCCESS":
+        paiement = db.query(models.Paiement).filter(
+            models.Paiement.id == body.id_paiement_local,
+            models.Paiement.id_locataire == utilisateur_courant["id"],
+        ).first()
+
+        if paiement and paiement.statut != "payé":
+            paiement.statut = "payé"
+            db.commit()
+
+            creer_notification(
+                db,
+                utilisateur_courant["id"],
+                "Paiement confirmé ✅",
+                f"Votre loyer de {int(paiement.montant):,} FCFA pour {paiement.mois_concerne} a été reçu. "
+                f"Réf : #{paiement.reference}".replace(",", " "),
+                "paiement"
+            )
+
+    return {
+        "statut": statut_saspay,          # PENDING | SUCCESS | FAILED
+        "payment_id": body.payment_id,
+        "net_amount": saspay_data.get("net_amount"),
+        "charged":    saspay_data.get("charged"),
+    }
+
+
+@app.post("/webhooks/saspay")
+async def webhook_saspay(request: Request, db: Session = Depends(get_db)):
+    """Réception des webhooks SasPay avec vérification de signature."""
+    signature = request.headers.get("X-Webhook-Signature", "")
+    timestamp  = request.headers.get("X-Webhook-Timestamp", "")
+    raw_body   = await request.body()
+
+    # 1. Vérifier l'âge de la requête (max 300 s)
+    try:
+        if abs(time.time() - int(timestamp)) > 300:
+            raise HTTPException(status_code=400, detail="Webhook trop ancien")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Timestamp invalide")
+
+    # 2. Vérifier la signature sur le corps brut
+    signed   = f"{timestamp}.".encode() + raw_body
+    expected = hmac.new(
+        SASPAY_WEBHOOK_SECRET.encode(),
+        signed,
+        hashlib.sha256
+    ).hexdigest()
+
+    if not hmac.compare_digest(expected, signature):
+        raise HTTPException(status_code=401, detail="Signature webhook invalide")
+
+    import json
+    payload = json.loads(raw_body)
+    event   = payload.get("event", "")
+    data    = payload.get("data", {})
+
+    if event == "transaction.success":
+        payment_id = data.get("id", "")
+        paiement = db.query(models.Paiement).filter(
+            models.Paiement.reference == payment_id,
+            models.Paiement.statut == "en_attente"
+        ).first()
+
+        if paiement:
+            paiement.statut = "payé"
+            db.commit()
+            creer_notification(
+                db,
+                paiement.id_locataire,
+                "Paiement confirmé ✅",
+                f"Loyer de {int(paiement.montant):,} FCFA reçu. Réf : #{paiement.reference}".replace(",", " "),
+                "paiement"
+            )
+
+    # Répondre rapidement (SasPay attend un 2xx immédiat)
+    return {"received": True}
